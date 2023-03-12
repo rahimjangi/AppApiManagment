@@ -28,7 +28,7 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("[action]")]
-    public UsersDto GetUsers(string? firstName,string? lastName,string? email)
+    public IEnumerable<UsersDto> GetSUsers(string? firstName,string? lastName,string? email)
     {
         var mapper= MapperProfile.Initialize();
 
@@ -37,67 +37,67 @@ public class UserController : ControllerBase
                 WHERE  ";
         string queryExtension = @"";
         string queryString = "";
-        var userFromDb = new Users();
+        IEnumerable<Users> userFromDb = new List<Users>();
 
         if (firstName!=null && lastName!=null && email != null)
         {
-            queryExtension = @"FirstName=@firstName AND LastName=@lastName AND Email=@email";
+            queryExtension = @"FirstName LIKE '%"+@firstName +"'AND LastName LIKE '%"+@lastName +"'AND Email LIKE '%"+@email+"'";
             queryString = selectQuary + queryExtension;
             Console.WriteLine(queryString);
-            userFromDb = _dataContext.LoadDataSingle<Users>(queryString, new { firstName, lastName, email });
-            return mapper.Map<Users, UsersDto>(userFromDb);
+            userFromDb = _dataContext.LoadData<Users>(queryString, new { firstName, lastName, email });
+            return mapper.Map<IEnumerable<Users>, IEnumerable<UsersDto>>(userFromDb);
         }
         else if (firstName != null && lastName != null)
         {
-            queryExtension = @"users.FirstName=@firstName AND users.LastName=@lastName";
+            queryExtension = @"users.FirstName LIKE '%"+@firstName +"'AND users.LastName LIKE '%"+@lastName+"'";
             queryString = selectQuary + queryExtension;
             Console.WriteLine(queryString);
-            userFromDb = _dataContext.LoadDataSingle<Users>(queryString, new { firstName, lastName});
-            return mapper.Map<Users, UsersDto>(userFromDb);
+            userFromDb = _dataContext.LoadData<Users>(queryString, new { firstName, lastName});
+            return mapper.Map<IEnumerable<Users>, IEnumerable<UsersDto>>(userFromDb);
         }
         else if (firstName != null && email != null)
         {
-            queryExtension = @"users.FirstName=@firstName AND users.Email=@email";
+            queryExtension = @"users.FirstName LIKE '%"+@firstName +"' AND users.Email LIKE '%"+@email+"'";
             queryString = selectQuary + queryExtension;
             Console.WriteLine(queryString);
-            userFromDb = _dataContext.LoadDataSingle<Users>(queryString, new { firstName, email });
-            return mapper.Map<Users, UsersDto>(userFromDb);
+            userFromDb = _dataContext.LoadData<Users>(queryString, new { firstName, email });
+            return mapper.Map<IEnumerable<Users>, IEnumerable<UsersDto>>(userFromDb);
         }
         else if (lastName != null && email != null)
         {
-            queryExtension = @"users.LastName=@lastName AND users.Email=@email";
+            queryExtension = @"users.LastName LIKE '%"+@lastName +"' AND users.Email LIKE '%"+@email+"'";
             queryString = selectQuary + queryExtension;
             Console.WriteLine(queryString);
-            userFromDb = _dataContext.LoadDataSingle<Users>(queryString, new { lastName, email });
-            return mapper.Map<Users, UsersDto>(userFromDb);
+            userFromDb = _dataContext.LoadData<Users>(queryString, new { lastName, email });
+            return mapper.Map<IEnumerable<Users>, IEnumerable<UsersDto>>(userFromDb);
         }
         else if(firstName != null)
         {
-            queryExtension = @"users.FirstName=@firstName";
+            queryExtension = @"users.FirstName LIKE '%"+@firstName+"'";
             queryString = selectQuary + queryExtension;
             Console.WriteLine(queryString);
-            userFromDb = _dataContext.LoadDataSingle<Users>(queryString, new { firstName});
-            return mapper.Map<Users, UsersDto>(userFromDb);
+            userFromDb = _dataContext.LoadData<Users>(queryString, new { firstName});
+            return mapper.Map<IEnumerable<Users>, IEnumerable<UsersDto>>(userFromDb);
         }
         else if (lastName != null)
         {
-            queryExtension = @"users.LastName=@lastName";
+            queryExtension = @"users.LastName LIKE '%"+@lastName+"'";
             queryString = selectQuary + queryExtension;
             Console.WriteLine(queryString);
-            userFromDb = _dataContext.LoadDataSingle<Users>(queryString, new { lastName});
-            return mapper.Map<Users, UsersDto>(userFromDb);
+            userFromDb = _dataContext.LoadData<Users>(queryString, new { lastName});
+            return mapper.Map<IEnumerable<Users>, IEnumerable<UsersDto>>(userFromDb);
         }
         else if (email != null)
         {
-            queryExtension = @" users.Email=@email";
+            queryExtension = @" users.Email LIKE '%"+@email+"'";
             queryString = selectQuary + queryExtension;
             Console.WriteLine(queryString);
-            userFromDb = _dataContext.LoadDataSingle<Users>(queryString, new {email });
-            return mapper.Map<Users, UsersDto>(userFromDb);
+            userFromDb = _dataContext.LoadData<Users>(queryString, new {email });
+            return mapper.Map<IEnumerable<Users>, IEnumerable<UsersDto>>(userFromDb);
         }
         else
         {
-            return  mapper.Map<Users, UsersDto>(userFromDb); ;
+            return mapper.Map<IEnumerable<Users>, IEnumerable<UsersDto>>(userFromDb);
         }
     }
 
@@ -121,6 +121,70 @@ public class UserController : ControllerBase
         }
 
         return 0;
+    }
+
+    [HttpPost("[action]")]
+    public int SaveUser(UsersDto user)
+    {
+        string sql = @"INSERT INTO SCOTT.USERS (
+                    FirstName, 
+                    LastName,
+                    Email,
+                    Gender,
+                    Active
+                ) VALUES (
+                    @FirstName, 
+                    @LastName,
+                    @Email,
+                    @Gender,
+                    @Active
+                    )
+                    ";
+        if (ModelState.IsValid)
+        {
+
+            return _dataContext.ExecuteSqlWithRowCount(sql, user);
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
+    [HttpPut("[action]")]
+    public int UpdateUser(int userId,UsersDto user)
+    {
+        string sql = @"UPDATE SCOTT.USERS
+                       SET 
+                        FirstName='" + user.FirstName + "'," +
+                        "LastName='" + user.LastName + "'," +
+                        "Email = '"+user.Email + "'," +
+                        "Gender ='"+user.Gender + "'," +
+                        "Active ='"+user.Active+"' WHERE USERID="+userId;
+
+        string existingUserQuary = @"SELECT * FROM SCOTT.USERS WHERE USERID=" + userId;
+
+
+        if (ModelState.IsValid)
+        {
+            var result =_dataContext.ExecuteSqlWithRowCount(sql,null);
+            return result;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
+    [HttpDelete("[action]")]
+    public IActionResult DeleteUser(int userId)
+    {
+        string sql = @"DELETE SCOTT.USERS WHERE USERID="+userId;
+        if(_dataContext.ExecuteSql(sql, null))
+        {
+            return Ok();
+        }
+        throw new Exception("There is a problem");
     }
 
 }
