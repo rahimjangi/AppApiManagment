@@ -58,6 +58,25 @@ public class DataContextDapper
         }
     }
 
+    public bool ExecuteSqlWithParameters(string sql, List<SqlParameter>sqlParams)
+    {
+        SqlCommand cmd=new SqlCommand(sql);
+        foreach (SqlParameter param in sqlParams)
+        {
+            cmd.Parameters.Add(param);
+        }
+        using (var conn = new SqlConnection(_configuration.GetConnectionString("Default")))
+        {
+            conn.Open();
+            cmd.Connection = conn;
+            int numberOfRowsAffected = cmd.ExecuteNonQuery();
+            conn.Close();
+            return (numberOfRowsAffected > 0);
+            
+        }
+    }
+
+
     public int ExecuteSqlWithRowCount(string sql, object param)
     {
         using (IDbConnection conn = new SqlConnection(_configuration.GetConnectionString("Default")))
@@ -70,6 +89,23 @@ public class DataContextDapper
             {
                 return conn.Execute(sql);
             }
+        }
+    }
+
+    public int ExecuteSqlWithRowCountWithParams(string sql, List<SqlParameter>sqlParams)
+    {
+        SqlCommand cmd=new SqlCommand(sql);
+        foreach (SqlParameter param in sqlParams)
+        {
+            cmd.Parameters.Add(param);
+        }
+        using (var conn = new SqlConnection(_configuration.GetConnectionString("Default")))
+        {
+            conn.Open();
+            cmd.Connection = conn;
+            int numberOfRowsAffected = cmd.ExecuteNonQuery();
+            conn.Close();
+            return numberOfRowsAffected;
         }
     }
 }
