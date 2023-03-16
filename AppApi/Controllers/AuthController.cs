@@ -1,6 +1,7 @@
 ﻿using AppApi.Data;
 using AppApi.Dto;
 using AppApi.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
@@ -15,6 +16,7 @@ namespace AppApi.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class AuthController : ControllerBase
 {
     private readonly DataContextDapper _dapper;
@@ -26,6 +28,7 @@ public class AuthController : ControllerBase
         _dapper = new DataContextDapper(config);
     }
 
+    [AllowAnonymous]
     [HttpPost("[action]")]
     public IActionResult Register(UserForRegistrationDto registrationDto)
     {
@@ -108,6 +111,7 @@ public class AuthController : ControllerBase
         return BadRequest("Password do not match!");
     }
 
+    [AllowAnonymous]
     [HttpPost("[action]")]
     public IActionResult Login(UserForLoginDto loginDto)
     {
@@ -134,6 +138,17 @@ public class AuthController : ControllerBase
             {"token",CreateToken(userId) }
         });
     }
+
+    [HttpGet("[action]")]
+    public string RefreshToken()
+    {
+        string sqlGetUserId = @"select [UserId] 
+        from scott.USERS where UserId=" + User.FindFirst("userId")?.Value ;
+        int userId=_dapper.LoadDataSingle<int>(sqlGetUserId,null);
+
+        return CreateToken(userId);
+    }
+
 
     private byte[] GetPasswordHash(byte[] passwordSalt,string password)
     {
