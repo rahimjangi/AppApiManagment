@@ -21,6 +21,7 @@ public class PostController : ControllerBase
         _dapper = new DataContextDapper(config);
     }
 
+    [AllowAnonymous]
     [HttpGet("[action]")]
     public IEnumerable<Post> GetAllPosts()
     {
@@ -124,17 +125,48 @@ public class PostController : ControllerBase
     [HttpPost("[action]")]
     public IActionResult PostToEdit(PostToEditDto postToEdit)
     {
+        int logedUserId = Convert.ToInt32(User.FindFirst("userId")?.Value);
         string sqlPostToEdit = @"
                     UPDATE SCOTT.POSTS
                         SET PostTitle=@PostTitle , PostContent=@PostContent , PostUpdated ='"+DateTime.Now.ToString()
-                        +"' WHERE [PostId] =" + postToEdit.PostId.ToString();
-        _dapper.ExecuteSql(sqlPostToEdit, new
+                        +"' WHERE [PostId] =" + postToEdit.PostId.ToString()+
+                        "[UserId] = "+logedUserId;
+       if( _dapper.ExecuteSql(sqlPostToEdit, new
         {
             PostTitle = postToEdit.PostTitle,
             PostContent = postToEdit.PostContent,
-        });
+       }))
+        {
+            return Ok();
+        }
+        else { return BadRequest("Post is not updated!"); }
 
-        return Ok();
     }
 
+    [HttpDelete("[action]/{postId}")]
+    public IActionResult DeletePost(int postId)
+    {
+        string sqlToDeletePost = @"DELETE FROM [SCOTT].[POST] WHERE [PostId] = "+postId;
+        if(_dapper.ExecuteSql(sqlToDeletePost, new { PostId=postId }))
+        {
+            return Ok();
+        }else { return BadRequest("Post not deleted!"); }
+    }
+
+
+    [HttpGet("[action]")]
+    [AllowAnonymous]
+    public IEnumerable<Post> GetPost(string PostTitle)
+    {
+        string sql = @"SELECT 
+                       [PostId]
+                      ,[UserId]
+                      ,[PostTitle]
+                      ,[PostContent]
+                      ,[PostCreate]
+                      ,[PostUpdated]
+                  FROM [TCI].[scott].[POSTS]
+                       WHERE  [PostTitle] LIKE '%" + @PostTitle + "%'";
+        return _dapper.LoadData<Post>(sql,null);
+    }
 }
